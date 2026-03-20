@@ -25211,11 +25211,16 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+
+    // ... （保留前面五个部分的所有代码）...
+
     // ============================================================
-    // 【第六部分���任务看板功能 - 修复版
+    // 【第六部分】任务看板功能 - 全局按钮版（不依赖工具栏）
     // ============================================================
 
-    // 1. 注入看板的精美 CSS 样式
+    // 1. 注入看板的 CSS 样式
     const kanbanStyle = document.createElement('style');
     kanbanStyle.innerHTML = `
         #kanban-modal::backdrop { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
@@ -25245,23 +25250,53 @@ document.addEventListener("DOMContentLoaded", function() {
         .task-form-group input, .task-form-group textarea { width: 100%; padding: 10px; border: 1px solid #bdc3c7; border-radius: 6px; box-sizing: border-box; font-size: 14px; transition: border 0.2s; }
         .task-form-group input:focus, .task-form-group textarea:focus { border-color: #3498db; outline: none; box-shadow: 0 0 5px rgba(52, 152, 219, 0.3); }
         
-        .btn-kanban-injected { 
-            background: #16a085 !important; 
-            color: white !important; 
-            border: none !important; 
-            padding: 8px 15px !important; 
-            border-radius: 4px !important; 
-            cursor: pointer !important; 
-            font-size: 13px !important; 
-            font-weight: bold !important; 
-            margin-left: 5px !important;
-            transition: background 0.2s !important;
+        /* 全局悬浮看板按钮 */
+        #btn-kanban-global {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            z-index: 9999998;
+            background: #16a085 !important;
+            color: white !important;
+            border: none !important;
+            padding: 15px 20px !important;
+            border-radius: 50px !important;
+            cursor: pointer !important;
+            font-size: 16px !important;
+            font-weight: bold !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important;
+            transition: transform 0.2s, box-shadow 0.2s !important;
         }
-        .btn-kanban-injected:hover { background: #138d75 !important; }
+        #btn-kanban-global:hover {
+            transform: scale(1.1) !important;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4) !important;
+        }
     `;
     document.head.appendChild(kanbanStyle);
 
-    // 2. 注入模态框 HTML 骨架
+    // 2. 创建全局悬浮按钮
+    const globalKanbanBtn = document.createElement('button');
+    globalKanbanBtn.id = 'btn-kanban-global';
+    globalKanbanBtn.innerHTML = '📋 任务看板';
+    globalKanbanBtn.title = '点击打开项目任务看板';
+    
+    let btnAdded = false;
+    
+    // 每 500ms 检查一次，确保按钮始终在 DOM 中
+    setInterval(() => {
+        if (!document.getElementById('btn-kanban-global')) {
+            document.body.appendChild(globalKanbanBtn);
+            btnAdded = true;
+        }
+    }, 500);
+    
+    // 首次加入
+    if (!document.getElementById('btn-kanban-global')) {
+        document.body.appendChild(globalKanbanBtn);
+        btnAdded = true;
+    }
+
+    // 3. 注入模态框 HTML
     const modalHtml = `
     <dialog id="kanban-modal" style="border: none; border-radius: 12px; padding: 30px; background: white; width: 1000px; max-width: 95vw; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #ecf0f1; padding-bottom: 15px;">
@@ -25305,7 +25340,7 @@ document.addEventListener("DOMContentLoaded", function() {
             <input type="text" id="task-input-title" placeholder="一句话描述要完成的事（必填）">
         </div>
         <div class="task-form-group">
-            <label>📝 任务详情 / 负责人备注</label>
+            <label>��� 任务详情 / 负责人备注</label>
             <textarea id="task-input-desc" rows="4" placeholder="任务的具体要求、标准，或指定由谁来负责执行..."></textarea>
         </div>
         <div class="task-form-group">
@@ -25324,80 +25359,29 @@ document.addEventListener("DOMContentLoaded", function() {
     const createModal = document.getElementById('task-create-modal');
     let currentKanbanGid = null;
 
-    // 3. 智能雷达：全覆盖式匹配，为每一个聊天会话的工具栏都注入按钮
-    // 【修复】：使用多种选择器尝试，增加兼容性
-    setInterval(() => {
-        // 【方案 A】原始选择器
-        let toolbars = document.querySelectorAll('.chat-session-inputarea-othertypes');
-        
-        // 【方案 B】如果方案 A 找不到，尝试其他可能的类名
-        if (toolbars.length === 0) {
-            toolbars = document.querySelectorAll('[class*="inputarea-othertypes"]');
-        }
-        
-        // 【方案 C】如果还是找不到，尝试寻找聊天工具栏的通用父元素
-        if (toolbars.length === 0) {
-            toolbars = document.querySelectorAll('[class*="inputarea"]');
-        }
-        
-        // 【方案 D】最后的绝招：寻找 ID 或其他特征
-        if (toolbars.length === 0) {
-            toolbars = document.querySelectorAll('[class*="othertypes"]');
-        }
-
-        if (toolbars.length === 0) {
-            console.warn("⚠️ 未找到��天工具栏元素，请检查页面结构");
-            return;
-        }
-
-        toolbars.forEach(toolbar => {
-            if (!toolbar.querySelector('.btn-kanban-injected')) {
-                const btn = document.createElement('button');
-                btn.className = 'btn-kanban-injected';
-                btn.innerHTML = '📋 任务看板';
-                btn.title = '项目任务看板';
-                btn.type = 'button';
-                
-                // 尝试在 AI 咨询按钮后插入（优先精确匹配原有类名，找不到则匹配以 -ai 结尾的类名，防止误杀单词）
-                const aiBtn = toolbar.querySelector('.chat-session-inputarea-othertypes-ai') || toolbar.querySelector('[class$="-ai"]');
-                if (aiBtn) {
-                    toolbar.insertBefore(btn, aiBtn.nextSibling);
+    // 4. 全局按钮点击事件
+    document.addEventListener('click', function(e) {
+        if (e.target.id === 'btn-kanban-global') {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (typeof checkin !== 'undefined' && checkin.subviews?.chat?.current_contact) {
+                const contact = checkin.subviews.chat.current_contact;
+                if (contact.type === 2) {
+                    currentKanbanGid = contact.target;
+                    document.getElementById('kanban-group-name').innerText = `(当前项目编号: ${currentKanbanGid})`;
+                    loadKanbanTasks(currentKanbanGid);
+                    kanbanModal.showModal();
                 } else {
-                    // 否则插在最前面
-                    toolbar.insertBefore(btn, toolbar.firstChild);
+                    alert("⚠️ 任务看板属于【项目协作】功能，请先在左侧选择进入一个群组聊天室！");
                 }
-
-                btn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    if (typeof checkin !== 'undefined' && checkin.subviews?.chat?.current_contact) {
-                        const contact = checkin.subviews.chat.current_contact;
-                        if (contact.type === 2) {
-                            currentKanbanGid = contact.target;
-                            document.getElementById('kanban-group-name').innerText = `(当前项目编号: ${currentKanbanGid})`;
-                            loadKanbanTasks(currentKanbanGid);
-                            kanbanModal.showModal();
-                        } else {
-                            alert("⚠️ 任务看板属于【项目协作】功能，请先在左侧选择进入一个群组聊天室！");
-                        }
-                    } else {
-                        alert("⚠️ 未检测到聊天对象信息，请确保已进入群组");
-                    }
-                });
+            } else {
+                alert("⚠️ 未检测到聊天对象信息，请确保已进入群组");
             }
-        });
+        }
+    }, true);
 
-        // 动态显示/隐藏
-        const allKanbanBtns = document.querySelectorAll('.btn-kanban-injected');
-        const isGroupChat = (typeof checkin !== 'undefined' && checkin.subviews?.chat?.current_contact?.type === 2);
-        
-        allKanbanBtns.forEach(btn => {
-            btn.style.display = isGroupChat ? 'inline-block' : 'none';
-        });
-    }, 800);
-
-    // 4. 加载看板任务
+    // 5. 加载看板任务
     function loadKanbanTasks(gid) {
         document.getElementById('col-todo').innerHTML = '<div style="text-align:center; padding: 20px; color:#7f8c8d;">数据加载中... ⏳</div>';
         document.getElementById('col-doing').innerHTML = '';
@@ -25422,7 +25406,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // 5. 渲染看板任务
+    // 6. 渲染看板任务
     function renderTasks(tasks) {
         const cols = { todo: [], doing: [], done: [] };
         tasks.forEach(t => {
@@ -25476,7 +25460,7 @@ document.addEventListener("DOMContentLoaded", function() {
         return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
     }
 
-    // 6. 更新任务状态
+    // 7. 更新任务状态
     window.updateTaskStatus = function(taskId, newStatus) {
         fetch(top_level_path + '/chat/api/task/update', {
             method: 'POST',
@@ -25493,7 +25477,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     };
 
-    // 7. 看板弹窗控制
+    // 8. 看板弹窗控制
     document.getElementById('btn-kanban-close').addEventListener('click', () => kanbanModal.close());
     document.getElementById('btn-kanban-refresh').addEventListener('click', () => { loadKanbanTasks(currentKanbanGid); });
     
@@ -25505,7 +25489,7 @@ document.addEventListener("DOMContentLoaded", function() {
     });
     document.getElementById('btn-task-cancel').addEventListener('click', () => createModal.close());
 
-    // 8. 提交新任务
+    // 9. 提交新任务
     document.getElementById('btn-task-submit').addEventListener('click', () => {
         const title = document.getElementById('task-input-title').value.trim();
         const desc = document.getElementById('task-input-desc').value.trim();
@@ -25543,6 +25527,8 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 
+});
+</script>
 });
 </script>
 
