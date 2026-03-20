@@ -25211,8 +25211,10 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
     // ============================================================
-    // 【第六部分】任务看板功能 - 智能版
+    // 【第六部分】任务看板功能 - 完整增强版
     // ============================================================
 
     // 1. 注入看板的 CSS 样式
@@ -25220,6 +25222,12 @@ document.addEventListener("DOMContentLoaded", function() {
     kanbanStyle.innerHTML = `
         #kanban-modal::backdrop { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
         #task-create-modal::backdrop { background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); }
+        
+        .category-tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; border-bottom: 2px solid #ecf0f1; padding-bottom: 15px; }
+        .category-tab { padding: 8px 16px; border: 2px solid #bdc3c7; border-radius: 20px; cursor: pointer; background: white; color: #333; font-weight: bold; transition: all 0.2s; }
+        .category-tab.active { background: #3498db; color: white; border-color: #3498db; }
+        .category-tab:hover { border-color: #3498db; }
+        
         .kanban-board { display: flex; gap: 20px; overflow-x: auto; padding-bottom: 10px; height: 60vh; align-items: flex-start; }
         .kanban-col { flex: 1; min-width: 280px; background: #f4f5f7; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; max-height: 100%; box-shadow: inset 0 0 5px rgba(0,0,0,0.02); }
         .kanban-col-header { font-weight: bold; margin-bottom: 15px; color: #333; display: flex; justify-content: space-between; align-items: center; }
@@ -25229,28 +25237,41 @@ document.addEventListener("DOMContentLoaded", function() {
         .kanban-card.status-todo { border-left-color: #e74c3c; }
         .kanban-card.status-doing { border-left-color: #f39c12; }
         .kanban-card.status-done { border-left-color: #2ecc71; opacity: 0.8; }
+        .kanban-card.disabled { opacity: 0.6; }
+        
         .kanban-card-title { font-weight: bold; font-size: 15px; margin-bottom: 8px; color: #2c3e50; line-height: 1.4; }
         .kanban-card-desc { font-size: 13px; color: #7f8c8d; margin-bottom: 12px; white-space: pre-wrap; background: #f9f9f9; padding: 8px; border-radius: 4px; border: 1px solid #eee; }
-        .kanban-card-meta { font-size: 12px; color: #95a5a6; display: flex; justify-content: space-between; margin-bottom: 12px; font-family: monospace; }
-        .kanban-actions { display: flex; gap: 8px; justify-content: flex-end; border-top: 1px dashed #eee; padding-top: 10px; }
+        
+        .kanban-card-meta { font-size: 12px; color: #95a5a6; margin-bottom: 10px; }
+        .kanban-meta-item { display: flex; align-items: center; margin: 4px 0; }
+        .kanban-meta-item strong { color: #34495e; margin-right: 8px; }
+        
+        .kanban-remind-badge { display: inline-block; background: #e74c3c; color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; margin-right: 5px; }
+        .kanban-category-badge { display: inline-block; background: #9b59b6; color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; }
+        
+        .kanban-actions { display: flex; gap: 8px; justify-content: flex-end; border-top: 1px dashed #eee; padding-top: 10px; flex-wrap: wrap; }
         .kanban-btn { border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; color: white; transition: opacity 0.2s, transform 0.1s; font-weight: bold; }
-        .kanban-btn:hover { opacity: 0.9; transform: scale(1.05); }
-        .kanban-btn:active { transform: scale(0.95); }
+        .kanban-btn:hover:not(:disabled) { opacity: 0.9; transform: scale(1.05); }
+        .kanban-btn:active:not(:disabled) { transform: scale(0.95); }
+        .kanban-btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .k-btn-todo { background: #95a5a6; }
         .k-btn-doing { background: #f39c12; }
         .k-btn-done { background: #27ae60; }
+        .k-btn-disabled { background: #bdc3c7; cursor: not-allowed; }
         
         .task-form-group { margin-bottom: 18px; }
         .task-form-group label { display: block; margin-bottom: 8px; font-size: 14px; color: #34495e; font-weight: bold;}
-        .task-form-group input, .task-form-group textarea { width: 100%; padding: 10px; border: 1px solid #bdc3c7; border-radius: 6px; box-sizing: border-box; font-size: 14px; transition: border 0.2s; }
-        .task-form-group input:focus, .task-form-group textarea:focus { border-color: #3498db; outline: none; box-shadow: 0 0 5px rgba(52, 152, 219, 0.3); }
+        .task-form-group input, .task-form-group textarea, .task-form-group select { width: 100%; padding: 10px; border: 1px solid #bdc3c7; border-radius: 6px; box-sizing: border-box; font-size: 14px; transition: border 0.2s; }
+        .task-form-group input:focus, .task-form-group textarea:focus, .task-form-group select:focus { border-color: #3498db; outline: none; box-shadow: 0 0 5px rgba(52, 152, 219, 0.3); }
+        
+        .remind-info { background: #fff3cd; border: 1px solid #ffc107; padding: 8px 12px; border-radius: 4px; font-size: 12px; color: #856404; margin-bottom: 10px; }
     `;
     document.head.appendChild(kanbanStyle);
 
     // 2. 注入模态框 HTML
     const modalHtml = `
-    <dialog id="kanban-modal" style="border: none; border-radius: 12px; padding: 30px; background: white; width: 1000px; max-width: 95vw; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #ecf0f1; padding-bottom: 15px;">
+    <dialog id="kanban-modal" style="border: none; border-radius: 12px; padding: 30px; background: white; width: 1100px; max-width: 95vw; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #ecf0f1; padding-bottom: 15px;">
             <h2 style="margin: 0; color: #2c3e50; font-size: 22px;">📋 项目任务看板 <span id="kanban-group-name" style="font-size:14px; color:#95a5a6; font-weight:normal; margin-left: 10px;"></span></h2>
             <div style="display: flex; gap: 10px;">
                 <button id="btn-kanban-refresh" style="background: #f1c40f; color: #333; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">🔄 刷新</button>
@@ -25258,6 +25279,9 @@ document.addEventListener("DOMContentLoaded", function() {
                 <button id="btn-kanban-close" style="background: #e74c3c; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">❌ 关闭</button>
             </div>
         </div>
+        
+        <!-- 分类标签 -->
+        <div class="category-tabs" id="category-tabs"></div>
         
         <div class="kanban-board">
             <div class="kanban-col">
@@ -25284,7 +25308,7 @@ document.addEventListener("DOMContentLoaded", function() {
         </div>
     </dialog>
 
-    <dialog id="task-create-modal" style="border: none; border-radius: 12px; padding: 30px; background: white; width: 450px; max-width: 90vw; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 10;">
+    <dialog id="task-create-modal" style="border: none; border-radius: 12px; padding: 30px; background: white; width: 500px; max-width: 90vw; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 10;">
         <h3 style="margin-top:0; border-bottom: 2px solid #ecf0f1; padding-bottom: 15px; color: #2c3e50;">✨ 新建任务卡片</h3>
         <div class="task-form-group">
             <label>📌 任务标题 <span style="color:#e74c3c">*</span></label>
@@ -25292,11 +25316,35 @@ document.addEventListener("DOMContentLoaded", function() {
         </div>
         <div class="task-form-group">
             <label>📝 任务详情</label>
-            <textarea id="task-input-desc" rows="4" placeholder="任务的具体要求..."></textarea>
+            <textarea id="task-input-desc" rows="3" placeholder="任务的具体要求..."></textarea>
+        </div>
+        <div class="task-form-group">
+            <label>📂 任务分类</label>
+            <input type="text" id="task-input-category" placeholder="输入新分类或从列表选择" list="category-list">
+            <datalist id="category-list"></datalist>
+        </div>
+        <div class="task-form-group">
+            <label>👤 分配给</label>
+            <select id="task-input-assignee">
+                <option value="">-- 选择群成员 --</option>
+            </select>
         </div>
         <div class="task-form-group">
             <label>⏰ 期望截止日期</label>
             <input type="date" id="task-input-due">
+        </div>
+        <div class="task-form-group">
+            <label>🔔 截止前多少天提醒负责人 <span style="color:#e74c3c">*</span></label>
+            <div style="display: flex; gap: 10px;">
+                <select id="task-input-remind" style="flex:1;">
+                    <option value="1">1 天前</option>
+                    <option value="2">2 天前</option>
+                    <option value="3">3 天前</option>
+                    <option value="7">7 天前</option>
+                    <option value="14">14 天前</option>
+                </select>
+                <span class="remind-info" style="flex:1; margin: 0; display: flex; align-items: center;">截止日期前提醒</span>
+            </div>
         </div>
         <div style="display: flex; gap: 15px; margin-top: 25px;">
             <button id="btn-task-submit" style="flex:1; background: #2ecc71; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px;">保存任务</button>
@@ -25309,6 +25357,9 @@ document.addEventListener("DOMContentLoaded", function() {
     const kanbanModal = document.getElementById('kanban-modal');
     const createModal = document.getElementById('task-create-modal');
     let currentKanbanGid = null;
+    let allTasks = [];
+    let currentUserId = null;
+    let selectedCategory = '全部';
 
     function getCurrentGroupName() {
         console.log("🔍 开始获取当前群组名");
@@ -25340,19 +25391,6 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         } catch (e) {
             console.log("ℹ️ 无法从页面文本获取群组");
-        }
-
-        try {
-            const selectedItem = document.querySelector('[style*="background-color: rgb(200, 220, 255)"], [style*="#c8dcff"], li.selected, li[class*="active"]');
-            if (selectedItem) {
-                const text = selectedItem.innerText.trim();
-                if (text && text.length <= 6 && /^[A-Z]+$/.test(text)) {
-                    console.log("✅ 从选中项获取群组:", text);
-                    return text;
-                }
-            }
-        } catch (e) {
-            console.log("ℹ️ 无法从选中项获取群组");
         }
 
         try {
@@ -25412,6 +25450,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         }
 
                         currentKanbanGid = groupName;
+                        selectedCategory = '全部';
                         document.getElementById('kanban-group-name').innerText = `(当前项目: ${groupName})`;
                         
                         console.log("✅ 准备加载群组任务:", groupName);
@@ -25437,33 +25476,35 @@ document.addEventListener("DOMContentLoaded", function() {
         document.getElementById('col-doing').innerHTML = '';
         document.getElementById('col-done').innerHTML = '';
 
-        console.log("🔍 发送任务列表请求，URL:", top_level_path + '/chat/api/task/list');
-        console.log("🔍 发送的数据:", { gid: gid });
-
-        fetch(top_level_path + '/chat/api/task/list', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ gid: gid })
-        })
-        .then(r => {
-            console.log("📊 响应状态码:", r.status);
-            return r.text().then(text => {
-                console.log("📄 原始响应内容:", text);
-                try {
-                    return JSON.parse(text);
-                } catch (e) {
-                    console.error("❌ JSON 解析失败，服务器返回:", text);
-                    throw new Error("服务器返回的不是有效 JSON: " + text);
+        // 同时加载任务列表和分类列表
+        Promise.all([
+            fetch(top_level_path + '/chat/api/task/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ gid: gid })
+            }).then(r => r.json()),
+            fetch(top_level_path + '/chat/api/task/categories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ gid: gid })
+            }).then(r => r.json())
+        ])
+        .then(([taskData, categoryData]) => {
+            console.log("✅ 任务数据:", taskData);
+            console.log("✅ 分类数据:", categoryData);
+            
+            if(taskData.success) {
+                allTasks = taskData.tasks;
+                currentUserId = taskData.current_user_id;
+                
+                // 加载分类标签
+                if(categoryData.success) {
+                    loadCategoryTabs(categoryData.categories);
                 }
-            });
-        })
-        .then(data => {
-            console.log("✅ 解析后的数据:", data);
-            if(data.success) {
-                console.log("✅ 成功获取任务，共", data.tasks.length, "个");
-                renderTasks(data.tasks);
+                
+                renderTasks(allTasks);
             } else {
-                alert("⚠️ 加载失败：" + (data.message || "请检查群组名是否正确"));
+                alert("⚠️ 加载失败：" + (taskData.message || "请检查群组名是否正确"));
             }
         })
         .catch(err => {
@@ -25472,9 +25513,50 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
+    function loadCategoryTabs(categories) {
+        const tabsContainer = document.getElementById('category-tabs');
+        tabsContainer.innerHTML = '';
+        
+        // 添加"全部"标签
+        const allTab = document.createElement('div');
+        allTab.className = 'category-tab active';
+        allTab.textContent = '📋 全部';
+        allTab.addEventListener('click', () => {
+            document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+            allTab.classList.add('active');
+            selectedCategory = '全部';
+            renderTasks(allTasks);
+        });
+        tabsContainer.appendChild(allTab);
+        
+        // 添加其他分类标签
+        categories.forEach(category => {
+            const tab = document.createElement('div');
+            tab.className = 'category-tab';
+            tab.innerHTML = `📁 ${escapeHTML(category)}`;
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                selectedCategory = category;
+                renderTasks(allTasks);
+            });
+            tabsContainer.appendChild(tab);
+        });
+
+        // 更新新建任务表单的分类选项
+        const categoryList = document.getElementById('category-list');
+        categoryList.innerHTML = categories.map(c => `<option value="${escapeHTML(c)}">`).join('');
+    }
+
     function renderTasks(tasks) {
+        // 根据选中的分类过滤任务
+        let filteredTasks = tasks;
+        if (selectedCategory !== '全部') {
+            filteredTasks = tasks.filter(t => t.category === selectedCategory);
+        }
+
         const cols = { todo: [], doing: [], done: [] };
-        tasks.forEach(t => {
+        filteredTasks.forEach(t => {
             if(cols[t.status]) cols[t.status].push(t);
             else cols.todo.push(t); 
         });
@@ -25485,27 +25567,41 @@ document.addEventListener("DOMContentLoaded", function() {
 
         const createCardHTML = (task) => {
             const dateStr = task.due_date ? `📅 ${task.due_date}` : '⌛ 无期限';
-            const creatorStr = task.creator_name ? `👤 ${task.creator_name}` : '';
+            const creatorStr = task.creator_name ? `👤 创建者: ${task.creator_name}` : '';
+            const assigneeStr = task.assignee_name ? `🎯 负责人: ${task.assignee_name}` : '🎯 未分配';
+            
+            // 【关键】判断当前用户是否是负责人或创建者
+            const isResponsible = task.assignee_id === currentUserId || task.creator_id === currentUserId;
+            const cardClass = isResponsible ? '' : 'disabled';
             
             let actionsHTML = '';
-            if(task.status === 'todo') {
-                actionsHTML = `<button class="kanban-btn k-btn-doing" onclick="updateTaskStatus(${task.id}, 'doing')">开始</button>`;
-            } else if(task.status === 'doing') {
-                actionsHTML = `
-                    <button class="kanban-btn k-btn-todo" onclick="updateTaskStatus(${task.id}, 'todo')">搁置</button>
-                    <button class="kanban-btn k-btn-done" onclick="updateTaskStatus(${task.id}, 'done')">完成</button>
-                `;
-            } else if(task.status === 'done') {
-                actionsHTML = `<button class="kanban-btn k-btn-todo" onclick="updateTaskStatus(${task.id}, 'todo')">打回</button>`;
+            if(isResponsible) {  // 只有负责人/创建者才能看到按钮
+                if(task.status === 'todo') {
+                    actionsHTML = `<button class="kanban-btn k-btn-doing" onclick="updateTaskStatus(${task.id}, 'doing')">开始</button>`;
+                } else if(task.status === 'doing') {
+                    actionsHTML = `
+                        <button class="kanban-btn k-btn-todo" onclick="updateTaskStatus(${task.id}, 'todo')">搁置</button>
+                        <button class="kanban-btn k-btn-done" onclick="updateTaskStatus(${task.id}, 'done')">完成</button>
+                    `;
+                } else if(task.status === 'done') {
+                    actionsHTML = `<button class="kanban-btn k-btn-todo" onclick="updateTaskStatus(${task.id}, 'todo')">打回</button>`;
+                }
+            } else {
+                actionsHTML = `<span style="color:#95a5a6; font-size:12px; padding:8px;">只有负责人可修改状态</span>`;
             }
 
             return `
-                <div class="kanban-card status-${task.status}">
+                <div class="kanban-card status-${task.status} ${cardClass}">
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                        ${task.remind_days ? `<span class="kanban-remind-badge">🔔 ${task.remind_days}天前提醒</span>` : ''}
+                        <span class="kanban-category-badge">${escapeHTML(task.category)}</span>
+                    </div>
                     <div class="kanban-card-title">${escapeHTML(task.title)}</div>
                     ${task.description ? `<div class="kanban-card-desc">${escapeHTML(task.description)}</div>` : ''}
                     <div class="kanban-card-meta">
-                        <span>${creatorStr}</span>
-                        <span style="font-weight:bold;">${dateStr}</span>
+                        <div class="kanban-meta-item"><strong>📌</strong> ${creatorStr}</div>
+                        <div class="kanban-meta-item"><strong>👥</strong> ${assigneeStr}</div>
+                        <div class="kanban-meta-item"><strong>⏰</strong> ${dateStr}</div>
                     </div>
                     <div class="kanban-actions">${actionsHTML}</div>
                 </div>
@@ -25531,8 +25627,9 @@ document.addEventListener("DOMContentLoaded", function() {
         .then(r => r.json())
         .then(data => {
             if(data.success) loadKanbanTasks(currentKanbanGid);
-            else alert("更新失败");
-        });
+            else alert("更新失败: " + data.message);
+        })
+        .catch(err => alert("网络错误: " + err.message));
     };
 
     document.getElementById('btn-kanban-close').addEventListener('click', () => kanbanModal.close());
@@ -25540,7 +25637,10 @@ document.addEventListener("DOMContentLoaded", function() {
     document.getElementById('btn-kanban-new-task').addEventListener('click', () => {
         document.getElementById('task-input-title').value = '';
         document.getElementById('task-input-desc').value = '';
+        document.getElementById('task-input-category').value = '';
+        document.getElementById('task-input-assignee').value = '';
         document.getElementById('task-input-due').value = '';
+        document.getElementById('task-input-remind').value = '1';
         createModal.showModal();
     });
     document.getElementById('btn-task-cancel').addEventListener('click', () => createModal.close());
@@ -25560,7 +25660,10 @@ document.addEventListener("DOMContentLoaded", function() {
                 gid: currentKanbanGid,
                 title: title,
                 description: document.getElementById('task-input-desc').value.trim(),
-                due_date: document.getElementById('task-input-due').value || null
+                category: document.getElementById('task-input-category').value.trim() || '默认',
+                assignee_id: document.getElementById('task-input-assignee').value || null,
+                due_date: document.getElementById('task-input-due').value || null,
+                remind_days: parseInt(document.getElementById('task-input-remind').value)
             })
         })
         .then(r => r.json())
@@ -25568,9 +25671,9 @@ document.addEventListener("DOMContentLoaded", function() {
             if(data.success) {
                 createModal.close();
                 loadKanbanTasks(currentKanbanGid);
-            } else alert("创建失败");
+            } else alert("创建失败: " + data.message);
         })
-        .catch(err => alert("网络错误"))
+        .catch(err => alert("网络错误: " + err.message))
         .finally(() => {
             btn.innerText = "保存任务";
             btn.disabled = false;
@@ -25579,7 +25682,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
 });
 </script>
-
 </body>
 
 </html>
