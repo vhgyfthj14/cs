@@ -25316,44 +25316,61 @@ document.addEventListener("DOMContentLoaded", function() {
         const createModal = document.getElementById('task-create-modal');
         let currentKanbanGid = null;
 
-        // 3. 终极防冲突雷达：全局独立悬浮按钮 (直接挂载到最外层，绝不冲突)
+        // 3. 智能雷达：精准匹配左侧联系人边栏标签栏的结构 (包含：最近联系人、AI咨询、群组)
         setInterval(() => {
-            let btn = document.getElementById('btn-open-kanban-header');
+            // 找到包含“最近联系人”、“AI咨询”、“群组”的标签页标题容器
+            // 这是一个假设的类名，你需要根据你的 HTML 结构来确认它。
+            // 根據截圖，這些標籤位於左側聯繫人列表頂部，搜索欄下方。
+            // 這裡假設一個常見的類名，你需要根據真實 HTML 進行調整。
+            const tabsHeader = document.querySelector('.chat-contacts-tabs-header');
             
-            // 如果按钮还没创建，就创建一个直接挂在网页最外层 (body) 上
-            if (!btn) {
-                btn = document.createElement('button');
-                btn.id = 'btn-open-kanban-header';
-                btn.innerHTML = '📋 任务看板';
-                btn.title = '打开项目任务看板';
+            if (tabsHeader && !document.getElementById('btn-open-kanban-tab')) {
+                const btn = document.createElement('button');
+                btn.id = 'btn-open-kanban-tab';
+                btn.innerHTML = '📋 看板';
+                btn.title = '项目任务看板';
+                // 完美融合你系统左侧标签页标题的风格 (扁平文本，中性颜色)
+                btn.style.cssText = 'background: transparent; border: none; cursor: pointer; font-size: 14px; color: #555; font-weight: normal; margin-right: 10px; padding: 10px 15px; border-radius: 4px; transition: background 0.2s, color 0.2s; display: inline-flex; align-items: center; justify-content: center; height: 100%; box-sizing: border-box;';
+                btn.onmouseover = () => { btn.style.background = 'rgba(0,0,0,0.05)'; btn.style.color = '#333'; };
+                btn.onmouseout = () => { btn.style.background = 'transparent'; btn.style.color = '#555'; };
                 
-                // 核心：使用 position: fixed 绝对悬浮！跳出所有原有的排版限制
-                btn.style.cssText = 'position: fixed; top: 80px; right: 30px; z-index: 9999; background: linear-gradient(135deg, #8e44ad, #9b59b6); color: white; border: none; padding: 10px 18px; border-radius: 30px; font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(142,68,173,0.4); transition: all 0.3s; display: none;';
-                
-                // 酷炫的悬停动画
-                btn.onmouseover = () => { btn.style.transform = 'translateY(-3px) scale(1.05)'; btn.style.boxShadow = '0 6px 20px rgba(142,68,173,0.6)'; };
-                btn.onmouseout = () => { btn.style.transform = 'translateY(0) scale(1)'; btn.style.boxShadow = '0 4px 15px rgba(142,68,173,0.4)'; };
-                
-                document.body.appendChild(btn); // 直接挂载到网页最外层，不在任何标题栏里面受气！
+                // 将看板标签插在“最近联系人”和“AI咨询”之间 (通常是第一个标签之后)
+                // 我将尝试寻找包含“最近联系人”文本的子元素，并将其插在其后。
+                // 这是一种更健壮的方法，如果你的 HTML 结构符合预期。
+                const tabs = Array.from(tabsHeader.querySelectorAll('span, a')); // Look for span or a tags
+                let recentContactsTabEl = tabs.find(tab => tab.textContent.includes('最近联系人'));
 
+                if (recentContactsTabEl) {
+                    tabsHeader.insertBefore(btn, recentContactsTabEl.nextSibling);
+                } else {
+                    // 如果找不到最近联系人标签，就直接插在容器开头，作为最前面的标签。
+                    tabsHeader.insertBefore(btn, tabsHeader.firstChild);
+                }
+
+                // 点击打开看板大厅
                 btn.addEventListener('click', () => {
                     if (typeof checkin !== 'undefined' && checkin.subviews?.chat?.current_contact) {
                         const contact = checkin.subviews.chat.current_contact;
-                        if (contact.type === 2) {
+                        if (contact.type === 2) { // type 2 代表群组
                             currentKanbanGid = contact.target;
                             document.getElementById('kanban-group-name').innerText = `(当前项目编号: ${currentKanbanGid})`;
                             loadKanbanTasks(currentKanbanGid);
                             kanbanModal.showModal();
+                        } else {
+                            alert("⚠️ 任务看板属于【项目协作】功能，请先在左侧选择进入一个群组聊天室！");
                         }
                     }
                 });
             }
 
-            // 智能显示/隐藏控制：只有当点进群组 (type === 2) 时，悬浮按钮才出现
-            if (typeof checkin !== 'undefined' && checkin.subviews?.chat?.current_contact?.type === 2) {
-                btn.style.display = 'block'; 
-            } else {
-                btn.style.display = 'none';  
+            // 智能隐藏：如果切到了私聊，就把看板标签藏起来
+            const btn = document.getElementById('btn-open-kanban-tab');
+            if (btn) {
+                if (typeof checkin !== 'undefined' && checkin.subviews?.chat?.current_contact?.type === 2) {
+                    btn.style.display = 'inline-flex';
+                } else {
+                    btn.style.display = 'none';
+                }
             }
         }, 800);
 
