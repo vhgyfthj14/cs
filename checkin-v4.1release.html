@@ -24976,28 +24976,23 @@ document.addEventListener("DOMContentLoaded", function() {
         const createModal = document.getElementById('task-create-modal');
         let currentKanbanGid = null;
 
-        // 3. 智能雷达：精准匹配底部输入框工具栏 (AI 咨询那一排)
+        // 3. 智能雷达：精准匹配 .chat-session-header-actions 结构
         setInterval(() => {
-            // 找到聊天框下方，包含“候选词”、“AI咨询”的那一排按钮容器
-            const toolbar = document.querySelector('.chat-session-inputarea-othertypes');
+            // 找到聊天框右上角那一排系统按钮的容器（更多、群组设置）
+            const headerActions = document.querySelector('.chat-session-header-actions');
             
-            if (toolbar && !document.getElementById('btn-open-kanban-toolbar')) {
+            if (headerActions && !document.getElementById('btn-open-kanban-header')) {
                 const btn = document.createElement('button');
-                btn.id = 'btn-open-kanban-toolbar';
-                btn.innerHTML = '📋 任务看板';
+                btn.id = 'btn-open-kanban-header';
+                btn.innerHTML = '📋 看板';
                 btn.title = '项目任务看板';
+                // 完美融合你系统右上角的按钮风格，并加入专属紫色
+                btn.style.cssText = 'background: transparent; border: none; cursor: pointer; font-size: 16px; color: #8e44ad; font-weight: bold; margin-right: 10px; transition: transform 0.2s; display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 0 10px; border-radius: 6px;';
+                btn.onmouseover = () => { btn.style.background = 'rgba(142,68,173,0.1)'; btn.style.transform = 'scale(1.05)'; };
+                btn.onmouseout = () => { btn.style.background = 'transparent'; btn.style.transform = 'scale(1)'; };
                 
-                // 注意：我们不需要写复杂的 style，因为它会自动继承你系统中对这排按钮设置的原生 CSS 样式！
-                // 这样就能保证和 "AI 咨询" 按钮在大小、颜色、鼠标悬停效果上 100% 完美一致。
-                
-                // 将按钮插在 "AI 咨询" 按钮的后面
-                const aiBtn = toolbar.querySelector('.chat-session-inputarea-othertypes-ai');
-                if (aiBtn) {
-                    toolbar.insertBefore(btn, aiBtn.nextSibling);
-                } else {
-                    // 如果没找到 AI 咨询，就插在最前面
-                    toolbar.insertBefore(btn, toolbar.firstChild);
-                }
+                // 将看板按钮插在右上角“更多”和“群组设置”的最左边
+                headerActions.insertBefore(btn, headerActions.firstChild);
 
                 // 点击打开看板大厅
                 btn.addEventListener('click', () => {
@@ -25016,10 +25011,10 @@ document.addEventListener("DOMContentLoaded", function() {
             }
 
             // 智能隐藏：如果切到了私聊，就把看板按钮藏起来
-            const btn = document.getElementById('btn-open-kanban-toolbar');
+            const btn = document.getElementById('btn-open-kanban-header');
             if (btn) {
                 if (typeof checkin !== 'undefined' && checkin.subviews?.chat?.current_contact?.type === 2) {
-                    btn.style.display = 'inline-block';
+                    btn.style.display = 'inline-flex';
                 } else {
                     btn.style.display = 'none';
                 }
