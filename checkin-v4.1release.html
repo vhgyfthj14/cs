@@ -25340,20 +25340,62 @@ document.addEventListener("DOMContentLoaded", function() {
                     
                     toolbar.appendChild(btn);
 
+ // ==================================================
+                    // 替换从这里开始：全新的点击事件逻辑
+                    // ==================================================
                     btn.addEventListener('click', (e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         
-                        // 去掉繁琐的条件判断，只要点了就尝试打开弹窗
-                        if (typeof checkin !== 'undefined' && checkin.subviews?.chat?.current_contact) {
-                            currentKanbanGid = checkin.subviews.chat.current_contact.target;
+                        let currentGid = null;
+                        
+                        // 【绝招 1】：从底层 JS 对象中地毯式搜索群组 ID (兼容多种可能的命名)
+                        const chatObj = window.checkin?.subviews?.chat;
+                        if (chatObj) {
+                            // 遍历常见的变量名
+                            const contact = chatObj.current_contact || chatObj.currentContact || chatObj.active_contact || chatObj.session || chatObj.current_session;
+                            if (contact) {
+                                currentGid = contact.target || contact.gid || contact.id || contact.group_id;
+                            }
+                        }
+
+                        // 【绝招 2】：如果变量里没有，从包裹按钮的 HTML 盒子属性上强行抠出来！
+                        if (!currentGid) {
+                            const sessionBox = e.target.closest('[id*="chat-session"], [data-target], [data-id]');
+                            if (sessionBox) {
+                                currentGid = sessionBox.getAttribute('data-target') || sessionBox.getAttribute('data-id');
+                                // 尝试从类似 id="chat-session-G12345" 的结构中提取 G12345
+                                if (!currentGid && sessionBox.id) {
+                                    const parts = sessionBox.id.split('-');
+                                    currentGid = parts[parts.length - 1]; 
+                                }
+                            }
+                        }
+
+                        // 【绝招 3】：如果还是不行，尝试从左侧高亮的联系人列表中抓取！
+                        if (!currentGid) {
+                            const activeContact = document.querySelector('.chat-contacts-list .active, [class*="contact"].active');
+                            if (activeContact) {
+                                currentGid = activeContact.getAttribute('data-target') || activeContact.getAttribute('data-id');
+                            }
+                        }
+
+                        // 最终判定：只要抓到了 ID，就立刻打开看板！
+                        if (currentGid) {
+                            currentKanbanGid = currentGid;
                             document.getElementById('kanban-group-name').innerText = `(当前房间: ${currentKanbanGid})`;
                             loadKanbanTasks(currentKanbanGid);
                             kanbanModal.showModal();
                         } else {
-                            alert("⚠️ 请先在左侧点击进入一个具体的聊天房间！");
+                            // 极端情况下的调试后手
+                            alert("⚠️ 系统未能获取当前房间的 ID！\n\n请确认您是否点进了一个【群组】？\n如果确定是群组，请按键盘 F12 打开开发者工具，把 Console(控制台) 的文字截图发给我。");
+                            console.log("🕵️‍♂️ 找不到房间ID，当前系统对象状态：", window.checkin);
+                            console.log("🕵️‍♂️ 按钮父级容器元素：", e.target.closest('[class*="chat-session"]'));
                         }
                     });
+                    // ==================================================
+                    // 替换到这里结束
+                    // ==================================================
                 }
             });
         }, 1000);
@@ -25501,8 +25543,6 @@ document.addEventListener("DOMContentLoaded", function() {
             btn.style.opacity = '1';
         });
     });
-
-});
 </script>
 
 </body>
