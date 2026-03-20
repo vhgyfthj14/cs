@@ -25211,323 +25211,333 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
+     // ============================================================
+    // 【第六部分】任务看板功能 - 智能版
     // ============================================================
-    // 【第六部分】任务看板功能
-    // ============================================================
 
-   // 1. 动态注入看板的精美 CSS 样式
-        const kanbanStyle = document.createElement('style');
-        kanbanStyle.innerHTML = `
-            #kanban-modal::backdrop { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
-            #task-create-modal::backdrop { background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); }
-            .kanban-board { display: flex; gap: 20px; overflow-x: auto; padding-bottom: 10px; height: 60vh; align-items: flex-start; }
-            .kanban-col { flex: 1; min-width: 280px; background: #f4f5f7; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; max-height: 100%; box-shadow: inset 0 0 5px rgba(0,0,0,0.02); }
-            .kanban-col-header { font-weight: bold; margin-bottom: 15px; color: #333; display: flex; justify-content: space-between; align-items: center; }
-            .kanban-cards { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 5px; }
-            .kanban-card { background: white; border-radius: 8px; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.08); border-left: 5px solid #ccc; position: relative; transition: transform 0.2s, box-shadow 0.2s; }
-            .kanban-card:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-            .kanban-card.status-todo { border-left-color: #e74c3c; }
-            .kanban-card.status-doing { border-left-color: #f39c12; }
-            .kanban-card.status-done { border-left-color: #2ecc71; opacity: 0.8; }
-            .kanban-card-title { font-weight: bold; font-size: 15px; margin-bottom: 8px; color: #2c3e50; line-height: 1.4; }
-            .kanban-card-desc { font-size: 13px; color: #7f8c8d; margin-bottom: 12px; white-space: pre-wrap; background: #f9f9f9; padding: 8px; border-radius: 4px; border: 1px solid #eee; }
-            .kanban-card-meta { font-size: 12px; color: #95a5a6; display: flex; justify-content: space-between; margin-bottom: 12px; font-family: monospace; }
-            .kanban-actions { display: flex; gap: 8px; justify-content: flex-end; border-top: 1px dashed #eee; padding-top: 10px; }
-            .kanban-btn { border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; color: white; transition: opacity 0.2s, transform 0.1s; font-weight: bold; }
-            .kanban-btn:hover { opacity: 0.9; transform: scale(1.05); }
-            .kanban-btn:active { transform: scale(0.95); }
-            .k-btn-todo { background: #95a5a6; }
-            .k-btn-doing { background: #f39c12; }
-            .k-btn-done { background: #27ae60; }
-            .task-form-group { margin-bottom: 18px; }
-            .task-form-group label { display: block; margin-bottom: 8px; font-size: 14px; color: #34495e; font-weight: bold;}
-            .task-form-group input, .task-form-group textarea { width: 100%; padding: 10px; border: 1px solid #bdc3c7; border-radius: 6px; box-sizing: border-box; font-size: 14px; transition: border 0.2s; }
-            .task-form-group input:focus, .task-form-group textarea:focus { border-color: #3498db; outline: none; box-shadow: 0 0 5px rgba(52, 152, 219, 0.3); }
-        `;
-        document.head.appendChild(kanbanStyle);
+    // 1. 注入看板的 CSS 样式
+    const kanbanStyle = document.createElement('style');
+    kanbanStyle.innerHTML = `
+        #kanban-modal::backdrop { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+        #task-create-modal::backdrop { background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); }
+        .kanban-board { display: flex; gap: 20px; overflow-x: auto; padding-bottom: 10px; height: 60vh; align-items: flex-start; }
+        .kanban-col { flex: 1; min-width: 280px; background: #f4f5f7; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; max-height: 100%; box-shadow: inset 0 0 5px rgba(0,0,0,0.02); }
+        .kanban-col-header { font-weight: bold; margin-bottom: 15px; color: #333; display: flex; justify-content: space-between; align-items: center; }
+        .kanban-cards { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 5px; }
+        .kanban-card { background: white; border-radius: 8px; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.08); border-left: 5px solid #ccc; position: relative; transition: transform 0.2s, box-shadow 0.2s; }
+        .kanban-card:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .kanban-card.status-todo { border-left-color: #e74c3c; }
+        .kanban-card.status-doing { border-left-color: #f39c12; }
+        .kanban-card.status-done { border-left-color: #2ecc71; opacity: 0.8; }
+        .kanban-card-title { font-weight: bold; font-size: 15px; margin-bottom: 8px; color: #2c3e50; line-height: 1.4; }
+        .kanban-card-desc { font-size: 13px; color: #7f8c8d; margin-bottom: 12px; white-space: pre-wrap; background: #f9f9f9; padding: 8px; border-radius: 4px; border: 1px solid #eee; }
+        .kanban-card-meta { font-size: 12px; color: #95a5a6; display: flex; justify-content: space-between; margin-bottom: 12px; font-family: monospace; }
+        .kanban-actions { display: flex; gap: 8px; justify-content: flex-end; border-top: 1px dashed #eee; padding-top: 10px; }
+        .kanban-btn { border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; color: white; transition: opacity 0.2s, transform 0.1s; font-weight: bold; }
+        .kanban-btn:hover { opacity: 0.9; transform: scale(1.05); }
+        .kanban-btn:active { transform: scale(0.95); }
+        .k-btn-todo { background: #95a5a6; }
+        .k-btn-doing { background: #f39c12; }
+        .k-btn-done { background: #27ae60; }
+        
+        .task-form-group { margin-bottom: 18px; }
+        .task-form-group label { display: block; margin-bottom: 8px; font-size: 14px; color: #34495e; font-weight: bold;}
+        .task-form-group input, .task-form-group textarea { width: 100%; padding: 10px; border: 1px solid #bdc3c7; border-radius: 6px; box-sizing: border-box; font-size: 14px; transition: border 0.2s; }
+        .task-form-group input:focus, .task-form-group textarea:focus { border-color: #3498db; outline: none; box-shadow: 0 0 5px rgba(52, 152, 219, 0.3); }
+    `;
+    document.head.appendChild(kanbanStyle);
 
-        // 2. 注入模态框 HTML 骨架
-        const modalHtml = `
-        <dialog id="kanban-modal" style="border: none; border-radius: 12px; padding: 30px; background: white; width: 1000px; max-width: 95vw; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #ecf0f1; padding-bottom: 15px;">
-                <h2 style="margin: 0; color: #2c3e50; font-size: 22px;">📋 项目任务看板 <span id="kanban-group-name" style="font-size:14px; color:#95a5a6; font-weight:normal; margin-left: 10px;"></span></h2>
-                <div style="display: flex; gap: 10px;">
-                    <button id="btn-kanban-refresh" style="background: #f1c40f; color: #333; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; transition: transform 0.1s;">🔄 刷新</button>
-                    <button id="btn-kanban-new-task" style="background: #3498db; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; transition: transform 0.1s;">➕ 新建任务</button>
-                    <button id="btn-kanban-close" style="background: #e74c3c; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; transition: transform 0.1s;">❌ 关闭</button>
+    // 2. 注入模态框 HTML
+    const modalHtml = `
+    <dialog id="kanban-modal" style="border: none; border-radius: 12px; padding: 30px; background: white; width: 1000px; max-width: 95vw; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #ecf0f1; padding-bottom: 15px;">
+            <h2 style="margin: 0; color: #2c3e50; font-size: 22px;">📋 项目任务看板 <span id="kanban-group-name" style="font-size:14px; color:#95a5a6; font-weight:normal; margin-left: 10px;"></span></h2>
+            <div style="display: flex; gap: 10px;">
+                <button id="btn-kanban-refresh" style="background: #f1c40f; color: #333; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">🔄 刷新</button>
+                <button id="btn-kanban-new-task" style="background: #3498db; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">➕ 新建任务</button>
+                <button id="btn-kanban-close" style="background: #e74c3c; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">❌ 关闭</button>
+            </div>
+        </div>
+        
+        <div class="kanban-board">
+            <div class="kanban-col">
+                <div class="kanban-col-header">
+                    <span>📝 待办事项</span>
+                    <span id="count-todo" style="background:#e74c3c; color:white; padding:3px 10px; border-radius:12px; font-size:12px;">0</span>
                 </div>
+                <div class="kanban-cards" id="col-todo"></div>
             </div>
-            
-            <div class="kanban-board">
-                <div class="kanban-col">
-                    <div class="kanban-col-header">
-                        <span>📝 待办事项</span>
-                        <span id="count-todo" style="background:#e74c3c; color:white; padding:3px 10px; border-radius:12px; font-size:12px;">0</span>
-                    </div>
-                    <div class="kanban-cards" id="col-todo"></div>
+            <div class="kanban-col">
+                <div class="kanban-col-header">
+                    <span>⏳ 进行中</span>
+                    <span id="count-doing" style="background:#f39c12; color:white; padding:3px 10px; border-radius:12px; font-size:12px;">0</span>
                 </div>
-                <div class="kanban-col">
-                    <div class="kanban-col-header">
-                        <span>⏳ 进行中</span>
-                        <span id="count-doing" style="background:#f39c12; color:white; padding:3px 10px; border-radius:12px; font-size:12px;">0</span>
-                    </div>
-                    <div class="kanban-cards" id="col-doing"></div>
+                <div class="kanban-cards" id="col-doing"></div>
+            </div>
+            <div class="kanban-col">
+                <div class="kanban-col-header">
+                    <span>✅ 已完成</span>
+                    <span id="count-done" style="background:#2ecc71; color:white; padding:3px 10px; border-radius:12px; font-size:12px;">0</span>
                 </div>
-                <div class="kanban-col">
-                    <div class="kanban-col-header">
-                        <span>✅ 已完成</span>
-                        <span id="count-done" style="background:#2ecc71; color:white; padding:3px 10px; border-radius:12px; font-size:12px;">0</span>
-                    </div>
-                    <div class="kanban-cards" id="col-done"></div>
-                </div>
+                <div class="kanban-cards" id="col-done"></div>
             </div>
-        </dialog>
+        </div>
+    </dialog>
 
-        <dialog id="task-create-modal" style="border: none; border-radius: 12px; padding: 30px; background: white; width: 450px; max-width: 90vw; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 10;">
-            <h3 style="margin-top:0; border-bottom: 2px solid #ecf0f1; padding-bottom: 15px; color: #2c3e50;">✨ 新建任务卡片</h3>
-            <div class="task-form-group">
-                <label>📌 任务标题 <span style="color:#e74c3c">*</span></label>
-                <input type="text" id="task-input-title" placeholder="一句话描述要完成的事（必填）">
-            </div>
-            <div class="task-form-group">
-                <label>📝 任务详情 / 负责人备注</label>
-                <textarea id="task-input-desc" rows="4" placeholder="任务的具体要求、标准，或指定由谁来负责执行..."></textarea>
-            </div>
-            <div class="task-form-group">
-                <label>⏰ 期望截止日期</label>
-                <input type="date" id="task-input-due">
-            </div>
-            <div style="display: flex; gap: 15px; margin-top: 25px;">
-                <button id="btn-task-submit" style="flex:1; background: #2ecc71; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; transition: background 0.2s;">保存任务</button>
-                <button id="btn-task-cancel" style="flex:1; background: #95a5a6; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; transition: background 0.2s;">取消</button>
-            </div>
-        </dialog>
-        `;
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    <dialog id="task-create-modal" style="border: none; border-radius: 12px; padding: 30px; background: white; width: 450px; max-width: 90vw; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 10;">
+        <h3 style="margin-top:0; border-bottom: 2px solid #ecf0f1; padding-bottom: 15px; color: #2c3e50;">✨ 新建任务卡片</h3>
+        <div class="task-form-group">
+            <label>📌 任务标题 <span style="color:#e74c3c">*</span></label>
+            <input type="text" id="task-input-title" placeholder="一句话描述要完成的事（必填）">
+        </div>
+        <div class="task-form-group">
+            <label>📝 任务详情</label>
+            <textarea id="task-input-desc" rows="4" placeholder="任务的具体要求..."></textarea>
+        </div>
+        <div class="task-form-group">
+            <label>⏰ 期望截止日期</label>
+            <input type="date" id="task-input-due">
+        </div>
+        <div style="display: flex; gap: 15px; margin-top: 25px;">
+            <button id="btn-task-submit" style="flex:1; background: #2ecc71; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px;">保存任务</button>
+            <button id="btn-task-cancel" style="flex:1; background: #95a5a6; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px;">取消</button>
+        </div>
+    </dialog>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-        const kanbanModal = document.getElementById('kanban-modal');
-        const createModal = document.getElementById('task-create-modal');
-        let currentKanbanGid = null;
+    const kanbanModal = document.getElementById('kanban-modal');
+    const createModal = document.getElementById('task-create-modal');
+    let currentKanbanGid = null;
 
-        // 3. 暴力覆盖雷达 + 绝招地毯式ID抓取
-        setInterval(() => {
-            const inputAreas = document.querySelectorAll('.chat-session-inputarea');
-            
-            inputAreas.forEach(area => {
-                let toolbar = area.querySelector('.chat-session-inputarea-othertypes');
-                
-                // 暴力保障：如果没工具栏，强制建一个
-                if (!toolbar) {
-                    toolbar = document.createElement('div');
-                    toolbar.className = 'chat-session-inputarea-othertypes';
-                    toolbar.style.cssText = 'padding: 5px 10px; display: flex; gap: 10px; align-items: center;';
-                    area.insertBefore(toolbar, area.firstChild);
-                }
+    // 【关键函数】智能获取当前选中的群组名称
+    function getCurrentGroupName() {
+        // 方法 1：查找顶部显示的群组名（形如"LS 1人在线"）
+        const headerText = document.querySelector('h1, h2, [class*="header"] span, [class*="session-title"]');
+        if (headerText) {
+            const text = headerText.textContent.trim();
+            const groupName = text.split(' ')[0]; // 取第一个单词
+            if (groupName && groupName.length > 0 && groupName !== '首页' && groupName !== '聊天') {
+                console.log("✅ 从标题获取群组:", groupName);
+                return groupName;
+            }
+        }
 
-                // 强制注入按钮
-                if (!toolbar.querySelector('.btn-kanban-injected')) {
-                    const btn = document.createElement('button');
-                    btn.className = 'btn-kanban-injected';
-                    btn.innerHTML = '📋 任务看板';
-                    btn.title = '项目任务看板';
-                    btn.type = 'button';
+        // 方法 2：查找左侧被选中的群组（通常有蓝色背景或特殊样式）
+        const selectedGroup = document.querySelector('[style*="background: rgb(200, 220, 255)"], [style*="background-color: #c8dcff"], li[style*="background"], div[style*="background"] > span');
+        if (selectedGroup && selectedGroup.textContent.trim()) {
+            const groupName = selectedGroup.textContent.trim();
+            if (groupName && groupName !== '未知') {
+                console.log("✅ 从选中项获取群组:", groupName);
+                return groupName;
+            }
+        }
+
+        // 方法 3：使用全局 checkin 对象（如果存在）
+        if (typeof checkin !== 'undefined' && checkin.subviews?.chat?.current_contact) {
+            const contact = checkin.subviews.chat.current_contact;
+            if (contact.target) {
+                console.log("✅ 从 checkin 对象获取群组:", contact.target);
+                return contact.target;
+            }
+        }
+
+        // 方法 4：正则匹配页面上的 "LS" 或其他两字母群组名
+        const bodyText = document.body.innerText;
+        const match = bodyText.match(/\n(LS|WL|GRP|GROUP|[A-Z]{2})\n/);
+        if (match && match[1]) {
+            console.log("✅ 从正则匹配获取群组:", match[1]);
+            return match[1];
+        }
+
+        return null;
+    }
+
+    // 3. 为底部工具栏添加任务看板按钮
+    setInterval(() => {
+        // 寻找底部工具栏
+        const toolbarContainers = document.querySelectorAll('[class*="message-input"], [class*="input-area"], [class*="footer"], button[type="button"]');
+        
+        // 也可以直接查找包含"文件"、"图片"等按钮的容器
+        const allButtons = document.querySelectorAll('button');
+        for (let btn of allButtons) {
+            if (btn.textContent.includes('文件') || btn.textContent.includes('图片') || btn.textContent.includes('投票')) {
+                const toolbar = btn.parentElement;
+                if (toolbar && !toolbar.querySelector('.btn-kanban-injected')) {
+                    const kanbanBtn = document.createElement('button');
+                    kanbanBtn.className = 'btn-kanban-injected';
+                    kanbanBtn.innerHTML = '📋 任务看板';
+                    kanbanBtn.type = 'button';
+                    kanbanBtn.style.cssText = `
+                        background: #16a085 !important;
+                        color: white !important;
+                        border: none !important;
+                        padding: 8px 15px !important;
+                        border-radius: 4px !important;
+                        cursor: pointer !important;
+                        font-size: 13px !important;
+                        font-weight: bold !important;
+                        margin: 5px !important;
+                        transition: background 0.2s !important;
+                    `;
                     
-                    // 强制内联样式，绝对显示，不受任何其他 CSS 干扰
-                    btn.style.cssText = 'display: inline-flex !important; align-items: center; background: #16a085 !important; color: white !important; border: none !important; padding: 5px 12px !important; border-radius: 4px !important; cursor: pointer !important; font-size: 13px !important; font-weight: bold !important; z-index: 9999 !important; height: 28px !important; margin-left: 8px !important;';
-                    
-                    // 智能插入到 AI按钮 旁边，找不到就放最后
-                    const aiBtn = toolbar.querySelector('.chat-session-inputarea-othertypes-ai') || toolbar.querySelector('[class$="-ai"]');
-                    if (aiBtn) {
-                        toolbar.insertBefore(btn, aiBtn.nextSibling);
-                    } else {
-                        toolbar.appendChild(btn);
-                    }
+                    toolbar.appendChild(kanbanBtn);
 
-                    // ==================================================
-                    // 你提供的：地毯式 ID 搜索点击事件
-                    // ==================================================
-                    btn.addEventListener('click', (e) => {
+                    kanbanBtn.addEventListener('click', (e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         
-                        let currentGid = null;
+                        const groupName = getCurrentGroupName();
                         
-                        // 【绝招 1】：从底层 JS 对象中地毯式搜索群组 ID
-                        const chatObj = window.checkin?.subviews?.chat;
-                        if (chatObj) {
-                            const contact = chatObj.current_contact || chatObj.currentContact || chatObj.active_contact || chatObj.session || chatObj.current_session;
-                            if (contact) {
-                                currentGid = contact.target || contact.gid || contact.id || contact.group_id;
-                            }
+                        if (!groupName) {
+                            alert("⚠️ 无法获取当前群组信息，请确保:\n1. 已在左侧点击选中一个具体的群组\n2. 群组名称在页面顶部可见");
+                            return;
                         }
 
-                        // 【绝招 2】：从包裹按钮的 HTML 盒子属性上强行抠出来！
-                        if (!currentGid) {
-                            const sessionBox = e.target.closest('[id*="chat-session"], [data-target], [data-id]');
-                            if (sessionBox) {
-                                currentGid = sessionBox.getAttribute('data-target') || sessionBox.getAttribute('data-id');
-                                if (!currentGid && sessionBox.id) {
-                                    const parts = sessionBox.id.split('-');
-                                    currentGid = parts[parts.length - 1]; 
-                                }
-                            }
-                        }
-
-                        // 【绝招 3】：如果还是不行，尝试从左侧高亮的联系人列表中抓取！
-                        if (!currentGid) {
-                            const activeContact = document.querySelector('.chat-contacts-list .active, [class*="contact"].active');
-                            if (activeContact) {
-                                currentGid = activeContact.getAttribute('data-target') || activeContact.getAttribute('data-id');
-                            }
-                        }
-
-                        // 最终判定：只要抓到了 ID，就立刻打开看板！
-                        if (currentGid) {
-                            currentKanbanGid = currentGid;
-                            document.getElementById('kanban-group-name').innerText = `(当前房间: ${currentKanbanGid})`;
-                            loadKanbanTasks(currentKanbanGid);
-                            kanbanModal.showModal();
-                        } else {
-                            alert("⚠️ 系统未能获取当前房间的 ID！\\n\\n请确认您是否点进了一个【群组】？\\n如果确定是群组，请按键盘 F12 打开开发者工具，把 Console(控制台) 的文字截图发给我。");
-                            console.log("🕵️‍♂️ 找不到房间ID，当前系统对象状态：", window.checkin);
-                            console.log("🕵️‍♂️ 按钮父级容器元素：", e.target.closest('[class*="chat-session"]'));
-                        }
+                        currentKanbanGid = groupName;
+                        document.getElementById('kanban-group-name').innerText = `(当前项目: ${groupName})`;
+                        loadKanbanTasks(groupName);
+                        kanbanModal.showModal();
                     });
                 }
-            });
-        }, 1000);
-
-        // 4. API 引擎与渲染
-        function loadKanbanTasks(gid) {
-            document.getElementById('col-todo').innerHTML = '<div style="text-align:center; padding: 20px; color:#7f8c8d;">数据加载中... ⏳</div>';
-            document.getElementById('col-doing').innerHTML = '';
-            document.getElementById('col-done').innerHTML = '';
-
-            fetch(top_level_path + '/chat/api/task/list', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ gid: gid })
-            })
-            .then(r => r.json())
-            .then(data => {
-                if(data.success) renderTasks(data.tasks);
-                else alert("加载失败：" + data.message);
-            })
-            .catch(err => {
-                document.getElementById('col-todo').innerHTML = '<div style="color:#e74c3c; padding: 10px;">网络异常，获取失败。</div>';
-            });
+                break;
+            }
         }
+    }, 1000);
 
-        function renderTasks(tasks) {
-            const cols = { todo: [], doing: [], done: [] };
-            tasks.forEach(t => {
-                if(cols[t.status]) cols[t.status].push(t);
-                else cols.todo.push(t); 
-            });
+    // 4. 加载看板任务
+    function loadKanbanTasks(gid) {
+        document.getElementById('col-todo').innerHTML = '<div style="text-align:center; padding: 20px; color:#7f8c8d;">数据加载中... ⏳</div>';
+        document.getElementById('col-doing').innerHTML = '';
+        document.getElementById('col-done').innerHTML = '';
 
-            document.getElementById('count-todo').innerText = cols.todo.length;
-            document.getElementById('count-doing').innerText = cols.doing.length;
-            document.getElementById('count-done').innerText = cols.done.length;
+        fetch(top_level_path + '/chat/api/task/list', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ gid: gid })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if(data.success) {
+                renderTasks(data.tasks);
+            } else {
+                alert("加载失败：" + (data.message || "请检查群组名是否正确"));
+            }
+        })
+        .catch(err => {
+            console.error("加载任务出错:", err);
+            document.getElementById('col-todo').innerHTML = '<div style="color:#e74c3c; padding: 10px;">网络异常或群组不存在</div>';
+        });
+    }
 
-            const createCardHTML = (task) => {
-                const dateStr = task.due_date ? `📅 截止: ${task.due_date}` : '⌛ 无期限';
-                const creatorStr = task.creator_name ? `👤 创建者: ${task.creator_name}` : '';
-                
-                let actionsHTML = '';
-                if(task.status === 'todo') {
-                    actionsHTML = `<button class="kanban-btn k-btn-doing" onclick="updateTaskStatus(${task.id}, 'doing')">▶️ 开始执行</button>`;
-                } else if(task.status === 'doing') {
-                    actionsHTML = `
-                        <button class="kanban-btn k-btn-todo" onclick="updateTaskStatus(${task.id}, 'todo')">⏸️ 搁置</button>
-                        <button class="kanban-btn k-btn-done" onclick="updateTaskStatus(${task.id}, 'done')">✅ 验收完成</button>
-                    `;
-                } else if(task.status === 'done') {
-                    actionsHTML = `<button class="kanban-btn k-btn-todo" onclick="updateTaskStatus(${task.id}, 'todo')">🔄 重新打回</button>`;
-                }
+    // 5. 渲染看板任务
+    function renderTasks(tasks) {
+        const cols = { todo: [], doing: [], done: [] };
+        tasks.forEach(t => {
+            if(cols[t.status]) cols[t.status].push(t);
+            else cols.todo.push(t); 
+        });
 
-                return \`
-                    <div class="kanban-card status-\${task.status}">
-                        <div class="kanban-card-title">\${escapeHTML(task.title)}</div>
-                        \${task.description ? \`<div class="kanban-card-desc">\${escapeHTML(task.description)}</div>\` : ''}
-                        <div class="kanban-card-meta">
-                            <span>\${creatorStr}</span>
-                            <span style="color:\${task.due_date ? '#e74c3c' : '#bdc3c7'}; font-weight:bold;">\${dateStr}</span>
-                        </div>
-                        <div class="kanban-actions">
-                            \${actionsHTML}
-                        </div>
+        document.getElementById('count-todo').innerText = cols.todo.length;
+        document.getElementById('count-doing').innerText = cols.doing.length;
+        document.getElementById('count-done').innerText = cols.done.length;
+
+        const createCardHTML = (task) => {
+            const dateStr = task.due_date ? `📅 ${task.due_date}` : '⌛ 无期限';
+            const creatorStr = task.creator_name ? `👤 ${task.creator_name}` : '';
+            
+            let actionsHTML = '';
+            if(task.status === 'todo') {
+                actionsHTML = `<button class="kanban-btn k-btn-doing" onclick="updateTaskStatus(${task.id}, 'doing')">开始</button>`;
+            } else if(task.status === 'doing') {
+                actionsHTML = `
+                    <button class="kanban-btn k-btn-todo" onclick="updateTaskStatus(${task.id}, 'todo')">搁置</button>
+                    <button class="kanban-btn k-btn-done" onclick="updateTaskStatus(${task.id}, 'done')">完成</button>
+                `;
+            } else if(task.status === 'done') {
+                actionsHTML = `<button class="kanban-btn k-btn-todo" onclick="updateTaskStatus(${task.id}, 'todo')">打回</button>`;
+            }
+
+            return `
+                <div class="kanban-card status-${task.status}">
+                    <div class="kanban-card-title">${escapeHTML(task.title)}</div>
+                    ${task.description ? `<div class="kanban-card-desc">${escapeHTML(task.description)}</div>` : ''}
+                    <div class="kanban-card-meta">
+                        <span>${creatorStr}</span>
+                        <span style="font-weight:bold;">${dateStr}</span>
                     </div>
-                \`;
-            };
-
-            document.getElementById('col-todo').innerHTML = cols.todo.map(createCardHTML).join('') || '<div style="text-align:center; padding:10px; color:#bdc3c7; font-size:13px;">无任务</div>';
-            document.getElementById('col-doing').innerHTML = cols.doing.map(createCardHTML).join('') || '<div style="text-align:center; padding:10px; color:#bdc3c7; font-size:13px;">空闲中</div>';
-            document.getElementById('col-done').innerHTML = cols.done.map(createCardHTML).join('') || '<div style="text-align:center; padding:10px; color:#bdc3c7; font-size:13px;">还没有完成的任务哦</div>';
-        }
-
-        function escapeHTML(str) {
-            if (!str) return '';
-            return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
-        }
-
-        window.updateTaskStatus = function(taskId, newStatus) {
-            fetch(top_level_path + '/chat/api/task/update', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ task_id: taskId, status: newStatus })
-            })
-            .then(r => r.json())
-            .then(data => {
-                if(data.success) loadKanbanTasks(currentKanbanGid);
-                else alert("流转失败：" + data.message);
-            });
+                    <div class="kanban-actions">${actionsHTML}</div>
+                </div>
+            `;
         };
 
-        // 5. 弹窗与事件绑定
-        document.getElementById('btn-kanban-close').addEventListener('click', () => kanbanModal.close());
-        document.getElementById('btn-kanban-refresh').addEventListener('click', () => loadKanbanTasks(currentKanbanGid));
-        document.getElementById('btn-kanban-new-task').addEventListener('click', () => {
-            document.getElementById('task-input-title').value = '';
-            document.getElementById('task-input-desc').value = '';
-            document.getElementById('task-input-due').value = '';
-            createModal.showModal();
+        document.getElementById('col-todo').innerHTML = cols.todo.map(createCardHTML).join('') || '<div style="text-align:center; color:#bdc3c7;">无任务</div>';
+        document.getElementById('col-doing').innerHTML = cols.doing.map(createCardHTML).join('') || '<div style="text-align:center; color:#bdc3c7;">空闲中</div>';
+        document.getElementById('col-done').innerHTML = cols.done.map(createCardHTML).join('') || '<div style="text-align:center; color:#bdc3c7;">无</div>';
+    }
+
+    function escapeHTML(str) {
+        if (!str) return '';
+        return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+    }
+
+    window.updateTaskStatus = function(taskId, newStatus) {
+        fetch(top_level_path + '/chat/api/task/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ task_id: taskId, status: newStatus })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if(data.success) loadKanbanTasks(currentKanbanGid);
+            else alert("更新失败");
         });
-        document.getElementById('btn-task-cancel').addEventListener('click', () => createModal.close());
+    };
 
-        document.getElementById('btn-task-submit').addEventListener('click', () => {
-            const title = document.getElementById('task-input-title').value.trim();
-            const desc = document.getElementById('task-input-desc').value.trim();
-            const due = document.getElementById('task-input-due').value;
+    // 弹窗事件
+    document.getElementById('btn-kanban-close').addEventListener('click', () => kanbanModal.close());
+    document.getElementById('btn-kanban-refresh').addEventListener('click', () => { loadKanbanTasks(currentKanbanGid); });
+    document.getElementById('btn-kanban-new-task').addEventListener('click', () => {
+        document.getElementById('task-input-title').value = '';
+        document.getElementById('task-input-desc').value = '';
+        document.getElementById('task-input-due').value = '';
+        createModal.showModal();
+    });
+    document.getElementById('btn-task-cancel').addEventListener('click', () => createModal.close());
 
-            if(!title) return alert("❌ 请输入任务标题！");
-            
-            const btn = document.getElementById('btn-task-submit');
-            btn.innerText = "写入中... ⏳";
-            btn.style.opacity = '0.7';
+    document.getElementById('btn-task-submit').addEventListener('click', () => {
+        const title = document.getElementById('task-input-title').value.trim();
+        if(!title) return alert("请输入标题");
+        
+        const btn = document.getElementById('btn-task-submit');
+        btn.innerText = "保存中...";
+        btn.disabled = true;
 
-            fetch(top_level_path + '/chat/api/task/create', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    gid: currentKanbanGid, title: title, description: desc, due_date: due || null
-                })
+        fetch(top_level_path + '/chat/api/task/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                gid: currentKanbanGid,
+                title: title,
+                description: document.getElementById('task-input-desc').value.trim(),
+                due_date: document.getElementById('task-input-due').value || null
             })
-            .then(r => r.json())
-            .then(data => {
-                if(data.success) {
-                    createModal.close();
-                    loadKanbanTasks(currentKanbanGid);
-                } else {
-                    alert("创建失败：" + data.message);
-                }
-            })
-            .catch(err => alert("网络错误：" + err.message))
-            .finally(() => {
-                btn.innerText = "保存任务";
-                btn.style.opacity = '1';
-         });
+        })
+        .then(r => r.json())
+        .then(data => {
+            if(data.success) {
+                createModal.close();
+                loadKanbanTasks(currentKanbanGid);
+            } else alert("创建失败");
+        })
+        .catch(err => alert("网络错误"))
+        .finally(() => {
+            btn.innerText = "保存任务";
+            btn.disabled = false;
         });
-    })();
+    });
+
+});
 </script>
 
 </body>
