@@ -25358,8 +25358,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 btn.title = '项目任务看板';
                 btn.type = 'button';
                 
-                // 尝试在 AI 咨询按钮后插入
-                const aiBtn = toolbar.querySelector('[class*="ai"]');
+                // 尝试在 AI 咨询按钮后插入（优先精确匹配原有类名，找不到则匹配以 -ai 结尾的类名，防止误杀单词）
+                const aiBtn = toolbar.querySelector('.chat-session-inputarea-othertypes-ai') || toolbar.querySelector('[class$="-ai"]');
                 if (aiBtn) {
                     toolbar.insertBefore(btn, aiBtn.nextSibling);
                 } else {
