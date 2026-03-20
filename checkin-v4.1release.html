@@ -25212,7 +25212,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     // ============================================================
-    // 【第六部分】任务看板功能
+    // 【第六部分���任务看板功能 - 修复版
     // ============================================================
 
     // 1. 注入看板的精美 CSS 样式
@@ -25244,6 +25244,20 @@ document.addEventListener("DOMContentLoaded", function() {
         .task-form-group label { display: block; margin-bottom: 8px; font-size: 14px; color: #34495e; font-weight: bold;}
         .task-form-group input, .task-form-group textarea { width: 100%; padding: 10px; border: 1px solid #bdc3c7; border-radius: 6px; box-sizing: border-box; font-size: 14px; transition: border 0.2s; }
         .task-form-group input:focus, .task-form-group textarea:focus { border-color: #3498db; outline: none; box-shadow: 0 0 5px rgba(52, 152, 219, 0.3); }
+        
+        .btn-kanban-injected { 
+            background: #16a085 !important; 
+            color: white !important; 
+            border: none !important; 
+            padding: 8px 15px !important; 
+            border-radius: 4px !important; 
+            cursor: pointer !important; 
+            font-size: 13px !important; 
+            font-weight: bold !important; 
+            margin-left: 5px !important;
+            transition: background 0.2s !important;
+        }
+        .btn-kanban-injected:hover { background: #138d75 !important; }
     `;
     document.head.appendChild(kanbanStyle);
 
@@ -25311,24 +25325,52 @@ document.addEventListener("DOMContentLoaded", function() {
     let currentKanbanGid = null;
 
     // 3. 智能雷达：全覆盖式匹配，为每一个聊天会话的工具栏都注入按钮
+    // 【修复】：使用多种选择器尝试，增加兼容性
     setInterval(() => {
-        const toolbars = document.querySelectorAll('.chat-session-inputarea-othertypes');
+        // 【方案 A】原始选择器
+        let toolbars = document.querySelectorAll('.chat-session-inputarea-othertypes');
         
+        // 【方案 B】如果方案 A 找不到，尝试其他可能的类名
+        if (toolbars.length === 0) {
+            toolbars = document.querySelectorAll('[class*="inputarea-othertypes"]');
+        }
+        
+        // 【方案 C】如果还是找不到，尝试寻找聊天工具栏的通用父元素
+        if (toolbars.length === 0) {
+            toolbars = document.querySelectorAll('[class*="inputarea"]');
+        }
+        
+        // 【方案 D】最后的绝招：寻找 ID 或其他特征
+        if (toolbars.length === 0) {
+            toolbars = document.querySelectorAll('[class*="othertypes"]');
+        }
+
+        if (toolbars.length === 0) {
+            console.warn("⚠️ 未找到��天工具栏元素，请检查页面结构");
+            return;
+        }
+
         toolbars.forEach(toolbar => {
             if (!toolbar.querySelector('.btn-kanban-injected')) {
                 const btn = document.createElement('button');
                 btn.className = 'btn-kanban-injected';
                 btn.innerHTML = '📋 任务看板';
                 btn.title = '项目任务看板';
+                btn.type = 'button';
                 
-                const aiBtn = toolbar.querySelector('.chat-session-inputarea-othertypes-ai');
+                // 尝试在 AI 咨询按钮后插入
+                const aiBtn = toolbar.querySelector('[class*="ai"]');
                 if (aiBtn) {
                     toolbar.insertBefore(btn, aiBtn.nextSibling);
                 } else {
+                    // 否则插在最前面
                     toolbar.insertBefore(btn, toolbar.firstChild);
                 }
 
-                btn.addEventListener('click', () => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
                     if (typeof checkin !== 'undefined' && checkin.subviews?.chat?.current_contact) {
                         const contact = checkin.subviews.chat.current_contact;
                         if (contact.type === 2) {
@@ -25339,20 +25381,19 @@ document.addEventListener("DOMContentLoaded", function() {
                         } else {
                             alert("⚠️ 任务看板属于【项目协作】功能，请先在左侧选择进入一个群组聊天室！");
                         }
+                    } else {
+                        alert("⚠️ 未检测到聊天对象信息，请确保已进入群组");
                     }
                 });
             }
         });
 
+        // 动态显示/隐藏
         const allKanbanBtns = document.querySelectorAll('.btn-kanban-injected');
         const isGroupChat = (typeof checkin !== 'undefined' && checkin.subviews?.chat?.current_contact?.type === 2);
         
         allKanbanBtns.forEach(btn => {
-            if (isGroupChat) {
-                btn.style.display = 'inline-block';
-            } else {
-                btn.style.display = 'none';
-            }
+            btn.style.display = isGroupChat ? 'inline-block' : 'none';
         });
     }, 800);
 
@@ -25376,6 +25417,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         })
         .catch(err => {
+            console.error("加载任务出错:", err);
             document.getElementById('col-todo').innerHTML = '<div style="color:#e74c3c; padding: 10px;">网络连接异常，无法获取任务列表。</div>';
         });
     }
