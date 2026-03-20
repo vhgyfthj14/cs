@@ -25009,16 +25009,6 @@ document.addEventListener("DOMContentLoaded", function() {
                     }
                 });
             }
-
-            // 智能隐藏：如果切到了私聊，就把看板按钮藏起来
-            const btn = document.getElementById('btn-open-kanban-header');
-            if (btn) {
-                if (typeof checkin !== 'undefined' && checkin.subviews?.chat?.current_contact?.type === 2) {
-                    btn.style.display = 'inline-flex';
-                } else {
-                    btn.style.display = 'none';
-                }
-            }
         }, 800);
 
         // 4. API 引擎：向后端拉取当前群组的所有任务
