@@ -25312,46 +25312,73 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // 【关键函数】智能获取当前选中的群组名称
     function getCurrentGroupName() {
-        // 方法 1：查找顶部显示的群组名（形如"LS 1人在线"）
-        const headerText = document.querySelector('h1, h2, [class*="header"] span, [class*="session-title"]');
-        if (headerText) {
-            const text = headerText.textContent.trim();
-            const groupName = text.split(' ')[0]; // 取第一个单词
-            if (groupName && groupName.length > 0 && groupName !== '首页' && groupName !== '聊天') {
-                console.log("✅ 从标题获取群组:", groupName);
-                return groupName;
-            }
+    console.log("🔍 开始获取当前群组名");
+    
+    // 【最可靠的方法】从全局 Chat 对象获取当前会话
+    try {
+        // 检查是否有全局的聊天状态对象
+        if (typeof window.currentChatSession !== 'undefined' && window.currentChatSession?.gid) {
+            console.log("✅ 从 window.currentChatSession 获取群组:", window.currentChatSession.gid);
+            return window.currentChatSession.gid;
         }
-
-        // 方法 2：查找左侧被选中的群组（通常有蓝色背景或特殊样式）
-        const selectedGroup = document.querySelector('[style*="background: rgb(200, 220, 255)"], [style*="background-color: #c8dcff"], li[style*="background"], div[style*="background"] > span');
-        if (selectedGroup && selectedGroup.textContent.trim()) {
-            const groupName = selectedGroup.textContent.trim();
-            if (groupName && groupName !== '未知') {
-                console.log("✅ 从选中项获取群组:", groupName);
-                return groupName;
-            }
+        
+        if (typeof window.currentChatSession !== 'undefined' && window.currentChatSession?.uid) {
+            console.log("⚠️ 当前是私聊模式，不能创建任务");
+            alert("⚠️ 任务看板只能在群组中使用，请先选择一个群组");
+            return null;
         }
-
-        // 方法 3：使用全局 checkin 对象（如果存在）
-        if (typeof checkin !== 'undefined' && checkin.subviews?.chat?.current_contact) {
-            const contact = checkin.subviews.chat.current_contact;
-            if (contact.target) {
-                console.log("✅ 从 checkin 对象获取群组:", contact.target);
-                return contact.target;
-            }
-        }
-
-        // 方法 4：正则匹配页面上的 "LS" 或其他两字母群组名
-        const bodyText = document.body.innerText;
-        const match = bodyText.match(/\n(LS|WL|GRP|GROUP|[A-Z]{2})\n/);
-        if (match && match[1]) {
-            console.log("✅ 从正则匹配获取群组:", match[1]);
-            return match[1];
-        }
-
-        return null;
+    } catch (e) {
+        console.log("ℹ️ 无法从全局对象获取群组");
     }
+
+    // 【备选方法1】查找页面上显示的群组名（形如 "LS 1人在线"）
+    try {
+        const allText = document.body.innerText;
+        
+        // 匹配 "LS 1人在线" 这种格式
+        const match = allText.match(/\n([A-Z]{2,6})\s+(\d+人在线|离线)\n/);
+        if (match && match[1]) {
+            const groupName = match[1];
+            if (groupName.length <= 6 && /^[A-Z]+$/.test(groupName)) {
+                console.log("✅ 从页面文本获取群组:", groupName);
+                return groupName;
+            }
+        }
+    } catch (e) {
+        console.log("ℹ️ 无法从页面文本获取群组");
+    }
+
+    // 【备选方法2】查找被选中的群组列表项
+    try {
+        const selectedItem = document.querySelector('[style*="background-color: rgb(200, 220, 255)"], [style*="#c8dcff"], li.selected, li[class*="active"]');
+        if (selectedItem) {
+            const text = selectedItem.innerText.trim();
+            if (text && text.length <= 6 && /^[A-Z]+$/.test(text)) {
+                console.log("✅ 从选中项获取群组:", text);
+                return text;
+            }
+        }
+    } catch (e) {
+        console.log("ℹ️ 无法从选中项获取群组");
+    }
+
+    // 【备选方法3】手动提示用户输入
+    try {
+        const userInput = prompt("请输入群组名称（例如：LS）:", "");
+        if (userInput && userInput.trim()) {
+            const groupName = userInput.trim().toUpperCase();
+            if (/^[A-Z]{2,6}$/.test(groupName)) {
+                console.log("✅ 从用户输入获取群组:", groupName);
+                return groupName;
+            }
+        }
+    } catch (e) {
+        console.log("ℹ️ 用户取消了输入");
+    }
+
+    console.error("❌ 无法获取当前群组名");
+    return null;
+}
 
     // 3. 为底部工具栏添加任务看板按钮
     setInterval(() => {
@@ -25384,21 +25411,26 @@ document.addEventListener("DOMContentLoaded", function() {
                     toolbar.appendChild(kanbanBtn);
 
                     kanbanBtn.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        
-                        const groupName = getCurrentGroupName();
-                        
-                        if (!groupName) {
-                            alert("⚠️ 无法获取当前群组信息，请确保:\n1. 已在左侧点击选中一个具体的群组\n2. 群组名称在页面顶部可见");
-                            return;
-                        }
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.log("🔍 点击了任务看板按钮");
+    
+    const groupName = getCurrentGroupName();
+    console.log("🔍 获取到的群组名:", groupName);
+    
+    if (!groupName) {
+        alert("⚠️ 无法获取当前群组信息，请：\n\n1. 确保已在左侧点击选中一个具体的群组\n2. 群组名称应该是 'LS' 这样的两字母格式\n3. 或者在弹窗里手动输入群组名称");
+        return;
+    }
 
-                        currentKanbanGid = groupName;
-                        document.getElementById('kanban-group-name').innerText = `(当前项目: ${groupName})`;
-                        loadKanbanTasks(groupName);
-                        kanbanModal.showModal();
-                    });
+    currentKanbanGid = groupName;
+    document.getElementById('kanban-group-name').innerText = `(当前项目: ${groupName})`;
+    
+    console.log("✅ 准备加载群组任务:", groupName);
+    loadKanbanTasks(groupName);
+    kanbanModal.showModal();
+});
                 }
                 break;
             }
@@ -25407,6 +25439,16 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // 4. 加载看板任务
 function loadKanbanTasks(gid) {
+    console.log("🔍 [loadKanbanTasks] 接收到的 gid:", gid);
+    console.log("🔍 [loadKanbanTasks] currentKanbanGid:", currentKanbanGid);
+    
+    // 验证 gid 不为空
+    if (!gid || gid === "未知" || gid === "项目" || gid === "聊天") {
+        console.error("❌ [loadKanbanTasks] gid 无效:", gid);
+        alert("⚠️ 无法获取群组ID，请确保:\n1. 已在左侧点击选中一个具体的群组\n2. 群组名称看起来像 'LS', 'WL' 这样的格式");
+        return;
+    }
+
     document.getElementById('col-todo').innerHTML = '<div style="text-align:center; padding: 20px; color:#7f8c8d;">数据加载中... ⏳</div>';
     document.getElementById('col-doing').innerHTML = '';
     document.getElementById('col-done').innerHTML = '';
@@ -25421,25 +25463,18 @@ function loadKanbanTasks(gid) {
     })
     .then(r => {
         console.log("📊 响应状态码:", r.status);
-        console.log("📊 响应类型:", r.headers.get('content-type'));
-        
-        // 关键改动：先获取文本，检查是否是JSON
         return r.text().then(text => {
-            console.log("📄 原始响应内容（前500字符）:", text.substring(0, 500));
-            
-            // 尝试解析
+            console.log("📄 原始响应内容:", text);
             try {
                 return JSON.parse(text);
             } catch (e) {
-                console.error("❌ JSON 解析失败:", e);
-                console.error("❌ 完整响应内容:", text);
-                throw new Error("服务器返回的不是有效 JSON: " + text.substring(0, 200));
+                console.error("❌ JSON 解析失败，服务器返回:", text);
+                throw new Error("服务器返回的不是有效 JSON: " + text);
             }
         });
     })
     .then(data => {
         console.log("✅ 解析后的数据:", data);
-        
         if(data.success) {
             console.log("✅ 成功获取任务，共", data.tasks.length, "个");
             renderTasks(data.tasks);
@@ -25449,7 +25484,6 @@ function loadKanbanTasks(gid) {
     })
     .catch(err => {
         console.error("❌ 加载任务出错:", err);
-        console.error("❌ 错误堆栈:", err.stack);
         document.getElementById('col-todo').innerHTML = '<div style="color:#e74c3c; padding: 10px;">❌ ' + err.message + '</div>';
     });
 }
