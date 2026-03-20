@@ -25312,35 +25312,27 @@ document.addEventListener("DOMContentLoaded", function() {
         const createModal = document.getElementById('task-create-modal');
         let currentKanbanGid = null;
 
-        // 3. 智能雷达：精准匹配左侧联系人边栏标签栏的结构 (包含：最近联系人、AI咨询、群组)
+        // 3. 智能雷达：精准匹配底部输入框工具栏 (AI 咨询那一排)
         setInterval(() => {
-            // 找到包含“最近联系人”、“AI咨询”、“群组”的标签页标题容器
-            // 这是一个假设的类名，你需要根据你的 HTML 结构来确认它。
-            // 根據截圖，這些標籤位於左側聯繫人列表頂部，搜索欄下方。
-            // 這裡假設一個常見的類名，你需要根據真實 HTML 進行調整。
-            const tabsHeader = document.querySelector('.chat-contacts-tabs-header');
+            // 找到聊天框下方，包含“候选词”、“AI咨询”的那一排按钮容器
+            const toolbar = document.querySelector('.chat-session-inputarea-othertypes');
             
-            if (tabsHeader && !document.getElementById('btn-open-kanban-tab')) {
+            if (toolbar && !document.getElementById('btn-open-kanban-toolbar')) {
                 const btn = document.createElement('button');
-                btn.id = 'btn-open-kanban-tab';
-                btn.innerHTML = '📋 看板';
+                btn.id = 'btn-open-kanban-toolbar';
+                btn.innerHTML = '📋 任务看板';
                 btn.title = '项目任务看板';
-                // 完美融合你系统左侧标签页标题的风格 (扁平文本，中性颜色)
-                btn.style.cssText = 'background: transparent; border: none; cursor: pointer; font-size: 14px; color: #555; font-weight: normal; margin-right: 10px; padding: 10px 15px; border-radius: 4px; transition: background 0.2s, color 0.2s; display: inline-flex; align-items: center; justify-content: center; height: 100%; box-sizing: border-box;';
-                btn.onmouseover = () => { btn.style.background = 'rgba(0,0,0,0.05)'; btn.style.color = '#333'; };
-                btn.onmouseout = () => { btn.style.background = 'transparent'; btn.style.color = '#555'; };
                 
-                // 将看板标签插在“最近联系人”和“AI咨询”之间 (通常是第一个标签之后)
-                // 我将尝试寻找包含“最近联系人”文本的子元素，并将其插在其后。
-                // 这是一种更健壮的方法，如果你的 HTML 结构符合预期。
-                const tabs = Array.from(tabsHeader.querySelectorAll('span, a')); // Look for span or a tags
-                let recentContactsTabEl = tabs.find(tab => tab.textContent.includes('最近联系人'));
-
-                if (recentContactsTabEl) {
-                    tabsHeader.insertBefore(btn, recentContactsTabEl.nextSibling);
+                // 注意：我们不需要写复杂的 style，因为它会自动继承你系统中对这排按钮设置的原生 CSS 样式！
+                // 这样就能保证和 "AI 咨询" 按钮在大小、颜色、鼠标悬停效果上 100% 完美一致。
+                
+                // 将按钮插在 "AI 咨询" 按钮的后面
+                const aiBtn = toolbar.querySelector('.chat-session-inputarea-othertypes-ai');
+                if (aiBtn) {
+                    toolbar.insertBefore(btn, aiBtn.nextSibling);
                 } else {
-                    // 如果找不到最近联系人标签，就直接插在容器开头，作为最前面的标签。
-                    tabsHeader.insertBefore(btn, tabsHeader.firstChild);
+                    // 如果没找到 AI 咨询，就插在最前面
+                    toolbar.insertBefore(btn, toolbar.firstChild);
                 }
 
                 // 点击打开看板大厅
@@ -25359,11 +25351,11 @@ document.addEventListener("DOMContentLoaded", function() {
                 });
             }
 
-            // 智能隐藏：如果切到了私聊，就把看板标签藏起来
-            const btn = document.getElementById('btn-open-kanban-tab');
+            // 智能隐藏：如果切到了私聊，就把看板按钮藏起来
+            const btn = document.getElementById('btn-open-kanban-toolbar');
             if (btn) {
                 if (typeof checkin !== 'undefined' && checkin.subviews?.chat?.current_contact?.type === 2) {
-                    btn.style.display = 'inline-flex';
+                    btn.style.display = 'inline-block';
                 } else {
                     btn.style.display = 'none';
                 }
