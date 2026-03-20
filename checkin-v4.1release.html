@@ -25216,11 +25216,7 @@ document.addEventListener("DOMContentLoaded", function() {
             .finally(() => btnAdminGrant.innerText = "一键开通");
         });
     }
-});
-</script>
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        // 1. 动态注入看板的精美 CSS 样式
+    // 1. 动态注入看板的精美 CSS 样式
         const kanbanStyle = document.createElement('style');
         kanbanStyle.innerHTML = `
             #kanban-modal::backdrop { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
@@ -25519,7 +25515,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 btn.style.opacity = '1';
             });
         });
-    });
+});
+
 </script>
 
 </body>
